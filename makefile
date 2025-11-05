@@ -1,3 +1,6 @@
+
+INCLUDES = -I./includes
+
 build-sharpen: ./a.out
 
 ./a.out: image_sharpener.cpp libppm.cpp
