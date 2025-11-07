@@ -59,9 +59,26 @@ part3_1_B: out/part3_1_B_out.* $(INPUT)
 	mkdir -p output_images
 	out/part3_1_B_out $(INPUT) $(OUTPUT_PATH)/output_part3_1_B.ppm 
 
-out/part3_1_B_out.*: Part3/part3_1_B.cpp $(SUPPORTING_FILES)
+out/part3_2_B_out.*: Part3/part3_2_B.cpp $(SUPPORTING_FILES)
 	mkdir -p out
-	g++ $(INCLUDES) Part3/part3_1_B.cpp $(SUPPORTING_FILES) -o out/part3_1_B_out
+	g++ $(INCLUDES) Part3/part3_2_B.cpp $(SUPPORTING_FILES) -o out/part3_2_B_out
+
+part3_2_A: out/part3_2_A_out.* $(INPUT)
+	mkdir -p output_images
+	out/part3_2_A_out $(INPUT) $(OUTPUT_PATH)/output_part3_2_A.ppm 
+
+out/part3_2_A_out.*: Part3/part3_2_A.cpp $(SUPPORTING_FILES)
+	mkdir -p out
+	g++ $(INCLUDES) Part3/part3_2_A.cpp $(SUPPORTING_FILES) -o out/part3_2_A_out
+
+
+part3_2_B: out/part3_2_B_out.* $(INPUT)
+	mkdir -p output_images
+	out/part3_2_B_out $(INPUT) $(OUTPUT_PATH)/output_part3_2_B.ppm 
+
+out/part3_2_B_out.*: Part3/part3_2_B.cpp $(SUPPORTING_FILES)
+	mkdir -p out
+	g++ $(INCLUDES) Part3/part3_2_B.cpp $(SUPPORTING_FILES) -o out/part3_2_B_out
 
 clean:
 	rm -Force out/*.exe
