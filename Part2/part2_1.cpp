@@ -1,4 +1,5 @@
 #include <iostream>
+#include <list>
 #include <cstdint>
 #include <thread>
 #include <atomic>
@@ -11,11 +12,12 @@
 #include "../includes/pixelPacket.h"
 
 
-const int MAX_ITERATIONS = 100;
+const int MAX_ITERATIONS = 1;
 const int MAX_QUEUE_SIZE = 256;
+const int PROCESSED_ROW_COUNT = 2;
 const int SCALING_FACTOR = 1;
 
-std::queue<pixelPacket> q_s1_s2,q_s2_s3;
+std::queue<rowPacket> q_s1_s2,q_s2_s3;
 
 std::mutex mtx_s1_s2,mtx_s2_s3; 
 
@@ -33,7 +35,11 @@ void S1_smoothen(image_t *input_image){
             {1 ,-1}, {1 , 0}, {1 , 1}
     };
 
+
     for(int i=1;i<height-1;i++){
+
+        rowPacket rpkt(i,width-1);
+        
         for(int j=1;j<width-1;j++){
             int r=0,b=0,g=0;
             for(int k = 0;k < 9;k++){
@@ -41,21 +47,26 @@ void S1_smoothen(image_t *input_image){
                 b += input_image->image_pixels[i + dir[k][0]][j + dir[k][1]][1];
                 g += input_image->image_pixels[i + dir[k][0]][j + dir[k][1]][2];
             }
-            pixelPacket pkt(i,j,(uint8_t)(r/9),(uint8_t)(g/9),(uint8_t)(b/9));
+            pixelPacket pkt(j,(uint8_t)(r/9),(uint8_t)(g/9),(uint8_t)(b/9));
 
-            std::unique_lock<std::mutex> lock(mtx_s1_s2);
-            cv_empty_s1_s2.wait(lock, []{ return q_s1_s2.size() < MAX_QUEUE_SIZE; });
-
-            q_s1_s2.push(pkt);
-
-            lock.unlock();
-            cv_fill_s1_s2.notify_one();
+            rpkt.add_pixel_packet(pkt);
         }
+
+        // compute hash before adding to queue
+        rpkt.set_hash();
+
+        std::unique_lock<std::mutex> lock(mtx_s1_s2);
+        cv_empty_s1_s2.wait(lock, []{ return q_s1_s2.size() < MAX_QUEUE_SIZE; });
+
+        q_s1_s2.push(rpkt);
+
+        lock.unlock();
+        cv_fill_s1_s2.notify_one();
     }
 
     {
         std::lock_guard<std::mutex> lock(mtx_s1_s2);
-        q_s1_s2.push(pixelPacket{true});
+        q_s1_s2.push(rowPacket{true});
     }
     cv_fill_s1_s2.notify_one();
 }
@@ -66,37 +77,49 @@ void S2_find_details( image_t *input_image){
         std::unique_lock<std::mutex> lock(mtx_s1_s2);
         cv_fill_s1_s2.wait(lock,[]{return !q_s1_s2.empty();});
 
-        pixelPacket pkt = q_s1_s2.front();
+        rowPacket rpkt = q_s1_s2.front();
         q_s1_s2.pop();
         lock.unlock();
         cv_empty_s1_s2.notify_one();
 
-        if(pkt.is_last_packet()){
+        if(rpkt.is_last_row_packet()){
             std::lock_guard<std::mutex> lock1(mtx_s2_s3);
 
-            q_s2_s3.push(pixelPacket(true));
+            q_s2_s3.push(rowPacket(true));
             cv_fill_s2_s3.notify_one();
 
             break;
         }
 
-        if(!pkt.verify_hash()){
-            std::cerr << "Data Corrupted in pixelPacket("<<pkt.get_row()<<", "<<pkt.get_col() <<")!!" << std::endl;
+        if(!rpkt.verify_hash()){
+            std::cerr << "Data Corrupted in rowPacket("<<rpkt.get_row_no()<<")!!" << std::endl;
             break;
         }
 
-        int i = pkt.get_row(), j = pkt.get_col();
+        int i = rpkt.get_row_no();
 
-        int diff_r = ((input_image->image_pixels[i][j][0] - pkt.get_r()) < 0) ? 0 : (input_image->image_pixels[i][j][0] - pkt.get_r());
-        int diff_g = ((input_image->image_pixels[i][j][1] - pkt.get_g()) < 0) ? 0 : (input_image->image_pixels[i][j][1] - pkt.get_g());
-        int diff_b = ((input_image->image_pixels[i][j][2] - pkt.get_b()) < 0) ? 0 : (input_image->image_pixels[i][j][2] - pkt.get_b());
-    
-        pixelPacket pkt_out(i,j,(uint8_t)diff_r,(uint8_t)diff_g,(uint8_t)diff_b);
+        rowPacket new_rpkt(i,rpkt.get_max_cols());
+
+        for(int j = 1;j < rpkt.get_max_cols();j++){
+
+            pixelPacket pkt = rpkt.get_pixel_packet();
+
+            int diff_r = ((input_image->image_pixels[i][j][0] - pkt.get_r()) < 0) ? 0 : (input_image->image_pixels[i][j][0] - pkt.get_r());
+            int diff_g = ((input_image->image_pixels[i][j][1] - pkt.get_g()) < 0) ? 0 : (input_image->image_pixels[i][j][1] - pkt.get_g());
+            int diff_b = ((input_image->image_pixels[i][j][2] - pkt.get_b()) < 0) ? 0 : (input_image->image_pixels[i][j][2] - pkt.get_b());
+
+            pixelPacket new_pkt(j,(uint8_t)diff_r,(uint8_t)diff_g,(uint8_t)diff_b);
+
+            new_rpkt.add_pixel_packet(new_pkt);
+        }
+
+        // compute and update hash.
+        new_rpkt.set_hash(); 
 
         std::unique_lock<std::mutex> lock1(mtx_s2_s3);
 
         cv_empty_s2_s3.wait(lock1, [] { return q_s2_s3.size() < MAX_QUEUE_SIZE; });
-        q_s2_s3.push(pkt_out);
+        q_s2_s3.push(new_rpkt);
         
         lock1.unlock();
         cv_fill_s2_s3.notify_one();
@@ -110,25 +133,30 @@ void S3_sharpen (image_t *input_image, image_t *output_image) {
         std::unique_lock<std::mutex> lock1(mtx_s2_s3);
         cv_fill_s2_s3.wait(lock1 , []{ return !q_s2_s3.empty(); });
 
-        pixelPacket pkt = q_s2_s3.front();
+        rowPacket rpkt = q_s2_s3.front();
         q_s2_s3.pop();
 
         lock1.unlock();
         cv_empty_s2_s3.notify_one();
 
-        if(pkt.is_last_packet())
+        if(rpkt.is_last_row_packet())
             break;
 
-        if(!pkt.verify_hash()){
-            std::cerr << "Data Corrupted in pixelPacket("<<pkt.get_row()<<", "<<pkt.get_col() <<")!!" << std::endl;
+        if(!rpkt.verify_hash()){
+            std::cerr << "Data Corrupted in pixelPacket("<<rpkt.get_row_no() << ")!!" << std::endl;
             break;
         }
 
-        int i = pkt.get_row(), j = pkt.get_col();
+        int i = rpkt.get_row_no();
 
-        output_image->image_pixels[i][j][0]= ((input_image->image_pixels[i][j][0] + (SCALING_FACTOR * pkt.get_r())) > 255) ? 255 : (input_image->image_pixels[i][j][0] + (SCALING_FACTOR * pkt.get_r()));
-        output_image->image_pixels[i][j][1]= ((input_image->image_pixels[i][j][1] + (SCALING_FACTOR * pkt.get_g())) > 255) ? 255 : (input_image->image_pixels[i][j][1] + (SCALING_FACTOR * pkt.get_g()));
-        output_image->image_pixels[i][j][2]= ((input_image->image_pixels[i][j][2] + (SCALING_FACTOR * pkt.get_b())) > 255) ? 255 : (input_image->image_pixels[i][j][2] + (SCALING_FACTOR * pkt.get_b()));
+        for(int j = 1;j < rpkt.get_max_cols(); j++){
+
+            pixelPacket pkt = rpkt.get_pixel_packet();
+
+            output_image->image_pixels[i][j][0]= ((input_image->image_pixels[i][j][0] + (SCALING_FACTOR * pkt.get_r())) > 255) ? 255 : (input_image->image_pixels[i][j][0] + (SCALING_FACTOR * pkt.get_r()));
+            output_image->image_pixels[i][j][1]= ((input_image->image_pixels[i][j][1] + (SCALING_FACTOR * pkt.get_g())) > 255) ? 255 : (input_image->image_pixels[i][j][1] + (SCALING_FACTOR * pkt.get_g()));
+            output_image->image_pixels[i][j][2]= ((input_image->image_pixels[i][j][2] + (SCALING_FACTOR * pkt.get_b())) > 255) ? 255 : (input_image->image_pixels[i][j][2] + (SCALING_FACTOR * pkt.get_b()));
+        }
     }
 }
 
