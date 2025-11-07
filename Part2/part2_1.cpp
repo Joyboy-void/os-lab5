@@ -1,42 +1,36 @@
 #include <iostream>
-#include "../includes/libppm.h"
 #include <cstdint>
 #include <thread>
 #include <atomic>
+#include <condition_variable>
 #include <mutex>
-#include <semaphore>
+#include <queue>
 #include<chrono>
 
+#include "../includes/libppm.h"
+#include "../includes/pixelPacket.h"
 
-int SCALING_FACTOR = 1;
 
-image_t* S1_smoothen(image_t *input_image){
+const int MAX_ITERATIONS = 100;
+const int MAX_QUEUE_SIZE = 256;
+const int SCALING_FACTOR = 1;
+
+std::queue<pixelPacket> q_s1_s2,q_s2_s3;
+
+std::mutex mtx_s1_s2,mtx_s2_s3; 
+
+std::condition_variable cv_empty_s1_s2,cv_fill_s1_s2;
+std::condition_variable cv_empty_s2_s3,cv_fill_s2_s3;
+
+void S1_smoothen(image_t *input_image){
 
     int width = input_image->width;
     int height = input_image->height;
-
-    image_t* smooth_img = new image_t;
-    smooth_img->image_pixels = new uint8_t**[height];
-
-    smooth_img->height=height;
-    smooth_img->width=width;
-    
-    for(int i = 0; i < height; i++) {
-        smooth_img->image_pixels[i] = new uint8_t*[width];
-        for(int j = 0; j < width; j++)
-            smooth_img->image_pixels[i][j] = new uint8_t[3]();
-    }
     
     int dir[9][2] = {
-            {-1,-1},
-            {-1, 0},
-            {-1, 1},
-            {0 ,-1},
-            {0 , 0},
-            {0 , 1},
-            {1 ,-1},
-            {1 , 0},
-            {1 , 1}
+            {-1,-1}, {-1, 0}, {-1, 1},
+            {0 ,-1}, {0 , 0}, {0 , 1},
+            {1 ,-1}, {1 , 0}, {1 , 1}
     };
 
     for(int i=1;i<height-1;i++){
@@ -47,70 +41,95 @@ image_t* S1_smoothen(image_t *input_image){
                 b += input_image->image_pixels[i + dir[k][0]][j + dir[k][1]][1];
                 g += input_image->image_pixels[i + dir[k][0]][j + dir[k][1]][2];
             }
-            smooth_img->image_pixels[i][j][0]=(r)/9;
-            smooth_img->image_pixels[i][j][1]=(b)/9;
-            smooth_img->image_pixels[i][j][2]=(g)/9;
+            pixelPacket pkt(i,j,(uint8_t)(r/9),(uint8_t)(g/9),(uint8_t)(b/9));
+
+            std::unique_lock<std::mutex> lock(mtx_s1_s2);
+            cv_empty_s1_s2.wait(lock, []{ return q_s1_s2.size() < MAX_QUEUE_SIZE; });
+
+            q_s1_s2.push(pkt);
+
+            lock.unlock();
+            cv_fill_s1_s2.notify_one();
         }
     }
 
-    return smooth_img;
+    {
+        std::lock_guard<std::mutex> lock(mtx_s1_s2);
+        q_s1_s2.push(pixelPacket{true});
+    }
+    cv_fill_s1_s2.notify_one();
 }
 
 
-image_t* S2_find_details( image_t *input_image, image_t *smoothened_image){
-    
-    int width=input_image->width;
-    int height=input_image->height;
-    
-    image_t* details_img = new image_t;
-    details_img->image_pixels = new uint8_t**[height];
+void S2_find_details( image_t *input_image){
+    while(true){
+        std::unique_lock<std::mutex> lock(mtx_s1_s2);
+        cv_fill_s1_s2.wait(lock,[]{return !q_s1_s2.empty();});
 
-    details_img->width=width;
-    details_img->height=height;
-    
-    for(int i = 0; i < height; i++){
-        details_img->image_pixels[i] = new uint8_t*[width];
-        for(int j = 0; j < width; j++)
-            details_img->image_pixels[i][j] = new uint8_t[3];
-    }
+        pixelPacket pkt = q_s1_s2.front();
+        q_s1_s2.pop();
+        lock.unlock();
+        cv_empty_s1_s2.notify_one();
 
-    for(int i=0;i<height;i++){
-        for(int j=0;j<width;j++){
-            details_img->image_pixels[i][j][0]=((input_image->image_pixels[i][j][0]-smoothened_image->image_pixels[i][j][0])<0) ? 0 : (input_image->image_pixels[i][j][0] - smoothened_image->image_pixels[i][j][0]);
-            details_img->image_pixels[i][j][1]=((input_image->image_pixels[i][j][1]-smoothened_image->image_pixels[i][j][1])<0) ? 0 : (input_image->image_pixels[i][j][1] - smoothened_image->image_pixels[i][j][1]);
-            details_img->image_pixels[i][j][2]=((input_image->image_pixels[i][j][2]-smoothened_image->image_pixels[i][j][2])<0) ? 0 : (input_image->image_pixels[i][j][2] - smoothened_image->image_pixels[i][j][2]);
+        if(pkt.is_last_packet()){
+            std::lock_guard<std::mutex> lock1(mtx_s2_s3);
+
+            q_s2_s3.push(pixelPacket(true));
+            cv_fill_s2_s3.notify_one();
+
+            break;
         }
+
+        if(!pkt.verify_hash()){
+            std::cerr << "Data Corrupted in pixelPacket("<<pkt.get_row()<<", "<<pkt.get_col() <<")!!" << std::endl;
+            break;
+        }
+
+        int i = pkt.get_row(), j = pkt.get_col();
+
+        int diff_r = ((input_image->image_pixels[i][j][0] - pkt.get_r()) < 0) ? 0 : (input_image->image_pixels[i][j][0] - pkt.get_r());
+        int diff_g = ((input_image->image_pixels[i][j][1] - pkt.get_g()) < 0) ? 0 : (input_image->image_pixels[i][j][1] - pkt.get_g());
+        int diff_b = ((input_image->image_pixels[i][j][2] - pkt.get_b()) < 0) ? 0 : (input_image->image_pixels[i][j][2] - pkt.get_b());
+    
+        pixelPacket pkt_out(i,j,(uint8_t)diff_r,(uint8_t)diff_g,(uint8_t)diff_b);
+
+        std::unique_lock<std::mutex> lock1(mtx_s2_s3);
+
+        cv_empty_s2_s3.wait(lock1, [] { return q_s2_s3.size() < MAX_QUEUE_SIZE; });
+        q_s2_s3.push(pkt_out);
+        
+        lock1.unlock();
+        cv_fill_s2_s3.notify_one();
     }
-    return details_img;
 }
 
 
-image_t* S3_sharpen (image_t *input_image, image_t *details_image) {
+void S3_sharpen (image_t *input_image, image_t *output_image) {
 
-    int width=input_image->width;
-    int height=input_image->height;
+    while(true){
+        std::unique_lock<std::mutex> lock1(mtx_s2_s3);
+        cv_fill_s2_s3.wait(lock1 , []{ return !q_s2_s3.empty(); });
 
-    image_t* sharp_img = new image_t;
-    sharp_img->image_pixels = new uint8_t**[height];
-    
-    sharp_img->height=height;
-    sharp_img->width=width;
-    
-    for(int i = 0; i < height; i++) {
-        sharp_img->image_pixels[i] = new uint8_t*[width];
-        for(int j = 0; j < width; j++)
-            sharp_img->image_pixels[i][j] = new uint8_t[3];
-    }
+        pixelPacket pkt = q_s2_s3.front();
+        q_s2_s3.pop();
 
-    for(int i=0;i<height;i++){
-        for(int j=0;j<width;j++){
-            sharp_img->image_pixels[i][j][0]= ((input_image->image_pixels[i][j][0] + (SCALING_FACTOR * details_image->image_pixels[i][j][0])) > 255) ? 255 : (input_image->image_pixels[i][j][0] + (SCALING_FACTOR * details_image->image_pixels[i][j][0]));
-            sharp_img->image_pixels[i][j][1]= ((input_image->image_pixels[i][j][1] + (SCALING_FACTOR * details_image->image_pixels[i][j][1])) > 255) ? 255 : (input_image->image_pixels[i][j][1] + (SCALING_FACTOR * details_image->image_pixels[i][j][1]));
-            sharp_img->image_pixels[i][j][2]= ((input_image->image_pixels[i][j][2] + (SCALING_FACTOR * details_image->image_pixels[i][j][2])) > 255) ? 255 : (input_image->image_pixels[i][j][2] + (SCALING_FACTOR * details_image->image_pixels[i][j][2]));
+        lock1.unlock();
+        cv_empty_s2_s3.notify_one();
+
+        if(pkt.is_last_packet())
+            break;
+
+        if(!pkt.verify_hash()){
+            std::cerr << "Data Corrupted in pixelPacket("<<pkt.get_row()<<", "<<pkt.get_col() <<")!!" << std::endl;
+            break;
         }
-    }
 
-    return sharp_img;
+        int i = pkt.get_row(), j = pkt.get_col();
+
+        output_image->image_pixels[i][j][0]= ((input_image->image_pixels[i][j][0] + (SCALING_FACTOR * pkt.get_r())) > 255) ? 255 : (input_image->image_pixels[i][j][0] + (SCALING_FACTOR * pkt.get_r()));
+        output_image->image_pixels[i][j][1]= ((input_image->image_pixels[i][j][1] + (SCALING_FACTOR * pkt.get_g())) > 255) ? 255 : (input_image->image_pixels[i][j][1] + (SCALING_FACTOR * pkt.get_g()));
+        output_image->image_pixels[i][j][2]= ((input_image->image_pixels[i][j][2] + (SCALING_FACTOR * pkt.get_b())) > 255) ? 255 : (input_image->image_pixels[i][j][2] + (SCALING_FACTOR * pkt.get_b()));
+    }
 }
 
 int main(int argc, char **argv)
@@ -124,38 +143,46 @@ int main(int argc, char **argv)
     image_t *input_image = read_ppm_file(argv[1]);
     auto finish_r = std::chrono::steady_clock::now();
     
-    std::chrono::duration<double> elapsed_seconds_read = finish_r - start_r;
-    
-    auto start = std::chrono::steady_clock::now();
-    image_t *smoothened_image = S1_smoothen(input_image);
-    auto finish = std::chrono::steady_clock::now();
-    
-    std::chrono::duration<double> elapsed_seconds_smooth = finish - start;
-    
-    auto start_1 = std::chrono::steady_clock::now();
-    image_t *details_image = S2_find_details(input_image, smoothened_image);
-    auto finish_1= std::chrono::steady_clock::now();
-    
-    std::chrono::duration<double> elapsed_seconds_details = finish_1 - start_1;
-    
-    auto start_2 = std::chrono::steady_clock::now();
-    image_t *sharpened_image = S3_sharpen(input_image, details_image);
-    auto finish_2{std::chrono::steady_clock::now()};
-    
-    std::chrono::duration<double> elapsed_seconds_sharpen = finish_2 - start_2;
+    int height = input_image->height , width = input_image->width;
 
+    image_t* output_image = new image_t;
+
+    output_image->height = height;  
+    output_image->width = width;
+
+    output_image->image_pixels = new uint8_t**[height];
+    for(int i = 0;i < height;i++){
+        output_image->image_pixels[i] = new uint8_t*[width];
+        for(int j = 0;j < width;j++)
+            output_image->image_pixels[i][j] = new uint8_t[3]();
+    }
+
+    // for total time
+    auto start_p = std::chrono::steady_clock::now();
+
+    for(int i = 0;i < MAX_ITERATIONS;i++){
+
+        std:: thread t1(S1_smoothen,input_image);
+        std:: thread t2(S2_find_details,input_image);
+        std:: thread t3(S3_sharpen,input_image,output_image);
+
+        t1.join();
+        t2.join();
+        t3.join();
+    }
+
+    auto finish_p = std::chrono::steady_clock::now();
+
+    // for write time
     auto start_w = std::chrono::steady_clock::now();
-    write_ppm_file(argv[2], sharpened_image);
+
+    write_ppm_file(argv[2],output_image);
+
     auto finish_w = std::chrono::steady_clock::now();
-    
     std::chrono::duration<double> elapsed_seconds_write = finish_w - start_w;
-    
-    std::cout<<"file read : "<<elapsed_seconds_read.count()*1000<<" ms\n";
-    std::cout<<"smooth : "<<elapsed_seconds_smooth.count()*1000<<" ms\n";
-    std::cout<<"details : "<<elapsed_seconds_details.count()*1000<<" ms\n";
-    std::cout<<"sharp : "<<elapsed_seconds_sharpen.count()*1000<<" ms\n";
-    std::cout << "File write : " << elapsed_seconds_write.count() * 1000 << " ms\n";
-    
-    std::cout<< "Total time: " << (elapsed_seconds_smooth.count() + elapsed_seconds_details.count() + elapsed_seconds_sharpen.count() + elapsed_seconds_read.count()+ elapsed_seconds_write.count()) *1000<< " ms\n";
+
+    std::chrono::duration<double> elapsed = finish_p - start_p;
+    std::cout << "Total Processing time per iteration " << elapsed.count()*1000/MAX_ITERATIONS << " ms\n";
+
     return 0;
 }
