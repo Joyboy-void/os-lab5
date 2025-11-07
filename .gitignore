@@ -2,3 +2,7 @@
 *.obj
 *.exe
 *.out
+
+# output images
+
+output_images/*.ppm

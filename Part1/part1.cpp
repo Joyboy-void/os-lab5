@@ -4,10 +4,11 @@
 #include <thread>
 #include <atomic>
 #include <mutex>
+#include <semaphore>
 #include<chrono>
 
 
-int SCALING_FACTOR = 1;
+int SCALING_FACTOR = 2;
 
 image_t* S1_smoothen(image_t *input_image){
 
