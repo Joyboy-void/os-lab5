@@ -41,15 +41,15 @@ image_t* S1_smoothen(image_t *input_image){
 
     for(int i=1;i<height-1;i++){
         for(int j=1;j<width-1;j++){
-            int r=0,b=0,g=0;
+            int r=0,g=0,b=0;
             for(int k = 0;k < 9;k++){
                 r += input_image->image_pixels[i + dir[k][0]][j + dir[k][1]][0];
-                b += input_image->image_pixels[i + dir[k][0]][j + dir[k][1]][1];
-                g += input_image->image_pixels[i + dir[k][0]][j + dir[k][1]][2];
+                g += input_image->image_pixels[i + dir[k][0]][j + dir[k][1]][1];
+                b += input_image->image_pixels[i + dir[k][0]][j + dir[k][1]][2];
             }
             smooth_img->image_pixels[i][j][0]=(r)/9;
-            smooth_img->image_pixels[i][j][1]=(b)/9;
-            smooth_img->image_pixels[i][j][2]=(g)/9;
+            smooth_img->image_pixels[i][j][1]=(g)/9;
+            smooth_img->image_pixels[i][j][2]=(b)/9;
         }
     }
 
@@ -124,38 +124,38 @@ int main(int argc, char **argv)
     image_t *input_image = read_ppm_file(argv[1]);
     auto finish_r = std::chrono::steady_clock::now();
     
-    std::chrono::duration<double> elapsed_seconds_read = finish_r - start_r;
+    std::chrono::duration<double> elapsed_ms_read = finish_r - start_r;
     
     auto start = std::chrono::steady_clock::now();
     image_t *smoothened_image = S1_smoothen(input_image);
     auto finish = std::chrono::steady_clock::now();
     
-    std::chrono::duration<double> elapsed_seconds_smooth = finish - start;
+    std::chrono::duration<double> elapsed_ms_smooth = finish - start;
     
     auto start_1 = std::chrono::steady_clock::now();
     image_t *details_image = S2_find_details(input_image, smoothened_image);
     auto finish_1= std::chrono::steady_clock::now();
     
-    std::chrono::duration<double> elapsed_seconds_details = finish_1 - start_1;
+    std::chrono::duration<double> elapsed_ms_details = finish_1 - start_1;
     
     auto start_2 = std::chrono::steady_clock::now();
     image_t *sharpened_image = S3_sharpen(input_image, details_image);
     auto finish_2{std::chrono::steady_clock::now()};
     
-    std::chrono::duration<double> elapsed_seconds_sharpen = finish_2 - start_2;
+    std::chrono::duration<double> elapsed_ms_sharpen = finish_2 - start_2;
 
     auto start_w = std::chrono::steady_clock::now();
     write_ppm_file(argv[2], sharpened_image);
     auto finish_w = std::chrono::steady_clock::now();
     
-    std::chrono::duration<double> elapsed_seconds_write = finish_w - start_w;
+    std::chrono::duration<double> elapsed_ms_write = finish_w - start_w;
     
-    std::cout<<"file read : "<<elapsed_seconds_read.count()*1000<<" ms\n";
-    std::cout<<"smooth : "<<elapsed_seconds_smooth.count()*1000<<" ms\n";
-    std::cout<<"details : "<<elapsed_seconds_details.count()*1000<<" ms\n";
-    std::cout<<"sharp : "<<elapsed_seconds_sharpen.count()*1000<<" ms\n";
-    std::cout << "File write : " << elapsed_seconds_write.count() * 1000 << " ms\n";
-    
-    std::cout<< "Total time: " << (elapsed_seconds_smooth.count() + elapsed_seconds_details.count() + elapsed_seconds_sharpen.count() + elapsed_seconds_read.count()+ elapsed_seconds_write.count()) *1000<< " ms\n";
+    // std::cout<<"file read : "<<elapsed_ms_read.count()*1000<<" ms\n";
+    std::cout<<"smooth : "<<elapsed_ms_smooth.count()*1000<<" ms\n";
+    std::cout<<"details : "<<elapsed_ms_details.count()*1000<<" ms\n";
+    std::cout<<"sharp : "<<elapsed_ms_sharpen.count()*1000<<" ms\n";
+    // std::cout << "File write : " << elapsed_ms_write.count() * 1000 << " ms\n";
+    std::cout<< "Processing time: " << (elapsed_ms_smooth.count() + elapsed_ms_details.count() + elapsed_ms_sharpen.count()) *1000<< " ms\n";
+    std::cout<< "Total time: " << (elapsed_ms_smooth.count() + elapsed_ms_details.count() + elapsed_ms_sharpen.count() + elapsed_ms_read.count()+ elapsed_ms_write.count()) *1000<< " ms\n";
     return 0;
 }

@@ -1,8 +1,8 @@
 
 INCLUDES = -I includes
-SUPPORTING_FILES = includes/libppm.cpp includes/pixelPacket.cpp
+SUPPORTING_FILES = includes/libppm.cpp includes/rowPacket.cpp
 
-INPUT= input_images/1.ppm
+INPUT= input_images/5.ppm
 OUTPUT_PATH= output_images
 
 # part1
