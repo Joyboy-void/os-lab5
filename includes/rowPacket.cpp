@@ -9,29 +9,6 @@ rowPacket::rowPacket(int start_row_, int num_rows_, int cols_per_row_):
     is_last(false)
 {}
 
-rowPacket::rowPacket(std::istringstream iss){
-   iss >> start_row >> num_rows >> cols_per_row >> hash >> is_last;
-
-    std::string token;
-    while(iss >> token && token != "#"){
-        pixels.push_back(static_cast<uint8_t>(std::stoi(token)));
-    }
-}
-
 rowPacket::rowPacket(bool is_last_flag): 
     start_row(-1), num_rows(0), cols_per_row(0), pixels(), hash(0), is_last(is_last_flag)
 {}
-
-std::string rowPacket::encode(){
-    std::ostringstream oss;
-
-    // encoading start_row num_rows cols_per_row hash is_last pixels......
-    oss << start_row << " " << num_rows << " " << cols_per_row << " " << hash << " "<< is_last << " ";
-
-    for(uint8_t px : pixels)
-        oss << static_cast<int>(px)<< " ";  
-
-    oss << "#"; // sentinal symbol
-
-    return oss.str();
-}

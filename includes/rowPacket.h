@@ -19,9 +19,6 @@ public:
 
     rowPacket(int start_row_, int num_rows_, int cols_per_row_);
 
-    // constructor overload to decode the string from pipe
-    rowPacket(std::istringstream iss);
-
     explicit rowPacket(bool is_last_flag);
 
     // helper to get pointer to RGB triplet for given row_offset (0..num_rows-1) and col_index (0..cols_per_row-1)
@@ -30,8 +27,6 @@ public:
         return &pixels[idx];
     }
 
-    // helper to encode data into a string. (to write into pipe)
-    std::string encode();
 };
 
 #endif 

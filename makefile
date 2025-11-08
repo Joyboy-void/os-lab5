@@ -2,7 +2,7 @@
 INCLUDES = -I includes
 SUPPORTING_FILES = includes/libppm.cpp includes/rowPacket.cpp
 
-INPUT= input_images/5.ppm
+INPUT= input_images/7.ppm
 OUTPUT_PATH= output_images
 
 # part1
@@ -31,9 +31,9 @@ part2_2: out/part2_2_out.* $(INPUT)
 	mkdir -p output_images
 	out/part2_2_out $(INPUT) $(OUTPUT_PATH)/output_part2_2.ppm 
 
-out/part2_2_out.*: Part2/part2_2.cpp $(SUPPORTING_FILES)
+out/part2_2_out.*: Part2/part2_2/part2_2.cpp $(SUPPORTING_FILES)
 	mkdir -p out
-	g++ $(INCLUDES) Part2/part2_2.cpp $(SUPPORTING_FILES) -o out/part2_2_out
+	g++ $(INCLUDES) Part2/part2_2/part2_2.cpp $(SUPPORTING_FILES) -o out/part2_2_out
 
 
 part2_3: out/part2_3_out.* $(INPUT)
