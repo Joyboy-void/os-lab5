@@ -22,9 +22,9 @@ part2_1: out/part2_1_out.* $(INPUT)
 	mkdir -p output_images
 	out/part2_1_out $(INPUT) $(OUTPUT_PATH)/output_part2_1.ppm 
 
-out/part2_1_out.*: Part2/part2_1.cpp $(SUPPORTING_FILES)
+out/part2_1_out.*: Part2/part2_1/part2_1.cpp $(SUPPORTING_FILES)
 	mkdir -p out
-	g++ $(INCLUDES) Part2/part2_1.cpp $(SUPPORTING_FILES) -o out/part2_1_out
+	g++ $(INCLUDES) Part2/part2_1/part2_1.cpp $(SUPPORTING_FILES) -o out/part2_1_out
 
 
 part2_2: out/part2_2_out.* $(INPUT)
