@@ -42,7 +42,7 @@ static std::size_t calculate_hash_for_packet(const rowPacket &rp) {
     return h;
 }
 
-// read/write helpers
+// read/write helpers to counter partial reads/writes
 static ssize_t write_all(int fd, const void *buf, size_t count) {
 
     const char *p = static_cast<const char*>(buf);

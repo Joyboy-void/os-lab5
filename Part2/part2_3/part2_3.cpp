@@ -29,16 +29,16 @@ const int SCALING_FACTOR = 2;
 static const size_t HDR_SIZE = sizeof(int32_t)*3 + sizeof(uint64_t) + sizeof(uint8_t);
 
 // named shared memory & semaphores 
-static const char* SHM_S1_S2_NAME = "/shm_s1_s2_ipc_example";
-static const char* SHM_S2_S3_NAME = "/shm_s2_s3_ipc_example";
-static const char* SHM_S3_P_NAME  = "/shm_s3_p_ipc_example";
+static const char* SHM_S1_S2_NAME = "/shm_s1_s2";
+static const char* SHM_S2_S3_NAME = "/shm_s2_s3";
+static const char* SHM_S3_P_NAME  = "/shm_s3_p";
 
-static const char* SEM_S1S2_EMPTY = "/sem_s1s2_empty_ipc_example";
-static const char* SEM_S1S2_FULL  = "/sem_s1s2_full_ipc_example";
-static const char* SEM_S2S3_EMPTY = "/sem_s2s3_empty_ipc_example";
-static const char* SEM_S2S3_FULL  = "/sem_s2s3_full_ipc_example";
-static const char* SEM_S3P_EMPTY  = "/sem_s3p_empty_ipc_example";
-static const char* SEM_S3P_FULL   = "/sem_s3p_full_ipc_example";
+static const char* SEM_S1S2_EMPTY = "/sem_s1s2_empty";
+static const char* SEM_S1S2_FULL  = "/sem_s1s2_full";
+static const char* SEM_S2S3_EMPTY = "/sem_s2s3_empty";
+static const char* SEM_S2S3_FULL  = "/sem_s2s3_full";
+static const char* SEM_S3P_EMPTY  = "/sem_s3p_empty";
+static const char* SEM_S3P_FULL   = "/sem_s3p_full";
 
 // inherited by children
 static size_t g_cols_per_row = 0;
