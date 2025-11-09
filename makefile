@@ -5,6 +5,12 @@ SUPPORTING_FILES = includes/libppm.cpp includes/rowPacket.cpp
 INPUT= input_images/5.ppm
 OUTPUT_PATH= output_images
 
+# for part3
+
+IP = 127.0.0.1
+PORT = 9090
+
+
 # part1
 
 part1: out/part1_out.* $(INPUT)
@@ -46,20 +52,19 @@ out/part2_3_out.*: Part2/part2_3/part2_3.cpp $(SUPPORTING_FILES)
 	
 # part 3
 
-# set IP and port here
 
 part3_1_A: out/part3_1_A_out.* $(INPUT)
 	mkdir -p output_images
-	out/part3_1_A_out $(INPUT) $(OUTPUT_PATH)/output_part3_1_A.ppm 
+	out/part3_1_A_out $(INPUT) $(OUTPUT_PATH)/output_part3_1_A.ppm $(PORT)
 
 out/part3_1_A_out.*: Part3/part3_1/part3_1_A.cpp $(SUPPORTING_FILES)
 	mkdir -p out
-	g++ $(INCLUDES) Part3/part3_1/part3_1_A.cpp $(SUPPORTING_FILES) -o out/part3_1_A_out
+	g++ $(INCLUDES) Part3/part3_1/part3_1_A.cpp $(SUPPORTING_FILES) -o out/part3_1_A_out 
 
 
 part3_1_B: out/part3_1_B_out.* $(INPUT)
 	mkdir -p output_images
-	out/part3_1_B_out $(INPUT) $(OUTPUT_PATH)/output_part3_1_B.ppm 
+	out/part3_1_B_out $(INPUT) $(OUTPUT_PATH)/output_part3_1_B.ppm $(IP) $(PORT)
 
 out/part3_1_B_out.*: Part3/part3_1/part3_1_B.cpp $(SUPPORTING_FILES)
 	mkdir -p out
@@ -70,7 +75,7 @@ out/part3_1_B_out.*: Part3/part3_1/part3_1_B.cpp $(SUPPORTING_FILES)
 
 part3_2_A: out/part3_2_A_out.* $(INPUT)
 	mkdir -p output_images
-	out/part3_2_A_out $(INPUT) $(OUTPUT_PATH)/output_part3_2_A.ppm 
+	out/part3_2_A_out $(INPUT) $(OUTPUT_PATH)/output_part3_2_A.ppm $(PORT)
 
 out/part3_2_A_out.*: Part3/part3_2/part3_2_A.cpp $(SUPPORTING_FILES)
 	mkdir -p out
@@ -79,7 +84,7 @@ out/part3_2_A_out.*: Part3/part3_2/part3_2_A.cpp $(SUPPORTING_FILES)
 
 part3_2_B: out/part3_2_B_out.* $(INPUT)
 	mkdir -p output_images
-	out/part3_2_B_out $(INPUT) $(OUTPUT_PATH)/output_part3_2_B.ppm 
+	out/part3_2_B_out $(INPUT) $(OUTPUT_PATH)/output_part3_2_B.ppm $(IP) $(PORT)
 
 out/part3_2_B_out.*: Part3/part3_2/part3_2_B.cpp $(SUPPORTING_FILES)
 	mkdir -p out
