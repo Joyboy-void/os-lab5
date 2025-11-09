@@ -391,7 +391,10 @@ int main(int argc, char **argv) {
     int listen_port = (argc == 4) ? std::atoi(argv[3]) : 9090;
 
     image_t* input_image = read_ppm_file(argv[1]);
-    if (!input_image) { std::cerr << "Failed to read input\n"; return 1; }
+    if (!input_image) { 
+        std::cerr << "Failed to read input\n"; 
+        return 1; 
+    }
 
     int height = input_image->height, width = input_image->width;
 
