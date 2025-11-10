@@ -16,8 +16,8 @@ int main(int argc,char **argv){
 	struct image_t * input_image1=read_ppm_file(argv[1]);
 	struct image_t * input_image2=read_ppm_file(argv[2]);
 
-	for(int i=1; i<input_image1->height-1; i++)
-		for(int j=1; j<input_image1->width-1; j++)
+	for(int i = 1; i<input_image1->height-1; i++)
+		for(int j = 1; j<input_image1->width-1; j++)
 			for(int k=0; k<3; k++)
 				if(input_image1->image_pixels[i][j][k] != input_image2->image_pixels[i][j][k]){
 					std::cout << "\nPixel corrupted at "<<"("<< i <<", " << j <<", " << k <<") " <<std::endl;

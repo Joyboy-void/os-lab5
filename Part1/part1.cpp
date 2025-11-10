@@ -98,8 +98,12 @@ image_t* S3_sharpen (image_t *input_image, image_t *details_image) {
     
     for(int i = 0; i < height; i++) {
         sharp_img->image_pixels[i] = new uint8_t*[width];
-        for(int j = 0; j < width; j++)
+        for(int j = 0; j < width; j++){
             sharp_img->image_pixels[i][j] = new uint8_t[3];
+            for(int k = 0;k < 3;k++)
+                sharp_img->image_pixels[i][j][k] = input_image->image_pixels[i][j][k];
+        }
+            
     }
 
     for(int i=0;i<height;i++){
