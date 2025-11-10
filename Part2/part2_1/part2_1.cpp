@@ -12,8 +12,8 @@
 #include <cstring>
 #include <cassert>
 
-#include "../includes/libppm.h"   
-#include "../includes/rowPacket.h"
+#include "../../include/rowPacket.h"
+#include "../../include/libppm.h"   
 
 
 const bool USE_HASH = true;         
@@ -255,6 +255,10 @@ int main(int argc, char **argv)
         exit(0);
     }
 
+    std::cout << "\nProcessing Image..." <<std::endl;
+    std::cout << "----------------------------------------------------------------------------------------------------------" << std::endl;
+
+
     auto start_r = std::chrono::steady_clock::now();
     image_t *input_image = read_ppm_file(argv[1]);
     auto finish_r = std::chrono::steady_clock::now();
@@ -294,10 +298,13 @@ int main(int argc, char **argv)
     write_ppm_file(argv[2],output_image);
 
     auto finish_w = std::chrono::steady_clock::now();
+
     std::chrono::duration<double> elapsed_seconds_write = finish_w - start_w;
 
     std::chrono::duration<double> elapsed = finish_p - start_p;
-    std::cout << "Total Processing time per iteration " << elapsed.count()*1000/MAX_ITERATIONS << " ms\n";
 
+    
+    std::cout << "Total Processing time per iteration " << elapsed.count()*1000/MAX_ITERATIONS << " ms\n";
+    std::cout << "Image written to " << argv[2] << std::endl;
     return 0;
 }

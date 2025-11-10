@@ -21,8 +21,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "../includes/rowPacket.h"
-#include "../includes/libppm.h"
+#include "../../include/rowPacket.h"
+#include "../../include/libppm.h"   
 
 const bool USE_HASH = true;
 const int PROCESSED_ROW_COUNT = 32;
@@ -381,14 +381,17 @@ static char* create_and_map_shm(const char* name, size_t size) {
 
 int main(int argc, char **argv) {
 
-    // usage: ./a.out <input.ppm> <output.ppm> [port]
+    // usage: ./a.out <input.ppm> [port]
     // specifing port is optional
-    if (argc != 3 && argc != 4) {
-        std::cout << "usage: ./a.out <input.ppm> <output.ppm> [port]\n";
+    if (argc != 2 && argc != 3) {
+        std::cout << "usage: ./a.out <input.ppm> [port]\n";
         return 0;
     }
 
-    int listen_port = (argc == 4) ? std::atoi(argv[3]) : 9090;
+    std::cout << "\nProcessing S1 and S2..." <<std::endl;
+    std::cout << "----------------------------------------------------------------------------------------------------------" << std::endl;
+
+    int listen_port = (argc == 3) ? std::atoi(argv[2]) : 9090;
 
     image_t* input_image = read_ppm_file(argv[1]);
     if (!input_image) { 
@@ -510,6 +513,7 @@ int main(int argc, char **argv) {
 
     auto finish_p = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed = finish_p - start_p;
+    
     std::cout << "Total Processing time : " << elapsed.count()*1000 << " ms\n";
 
     // unlink and close semaphores,servers

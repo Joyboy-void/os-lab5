@@ -10,8 +10,8 @@
 #include <cstring>
 #include <cerrno>
 
-#include "../includes/rowPacket.h"
-#include "../includes/libppm.h"   
+#include "../../include/rowPacket.h"
+#include "../../include/libppm.h"   
 
 int fd_S1_S2[2], fd_S2_S3[2], fd_S3_P[2];
 
@@ -417,6 +417,9 @@ int main(int argc, char **argv) {
         return 0;
     }
 
+    std::cout << "\nProcessing Image..." <<std::endl;
+    std::cout << "----------------------------------------------------------------------------------------------------------" << std::endl;
+
     image_t* input_image = read_ppm_file(argv[1]);
     if (!input_image) { std::cerr << "Failed to read input\n"; return 1; }
 
@@ -535,6 +538,7 @@ int main(int argc, char **argv) {
 
     auto finish_p = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed = finish_p - start_p;
+
     std::cout << "Total Processing time per iteration " << elapsed.count()*1000/MAX_ITERATIONS << " ms\n";
 
     write_ppm_file(argv[2], output_image);

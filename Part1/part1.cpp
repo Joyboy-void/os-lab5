@@ -1,5 +1,5 @@
 #include <iostream>
-#include "../includes/libppm.h"
+#include "../include/libppm.h"
 #include <cstdint>
 #include <thread>
 #include <atomic>
@@ -120,6 +120,10 @@ int main(int argc, char **argv)
         std::cout << "usage: ./a.out <path-to-original-image> <path-to-transformed-image>\n\n";
         exit(0);
     }
+
+    std::cout << "\nProcessing Image..." <<std::endl;
+    std::cout << "----------------------------------------------------------------------------------------------------------" << std::endl;
+
     auto start_r = std::chrono::steady_clock::now();
     image_t *input_image = read_ppm_file(argv[1]);
     auto finish_r = std::chrono::steady_clock::now();
@@ -149,6 +153,8 @@ int main(int argc, char **argv)
     auto finish_w = std::chrono::steady_clock::now();
     
     std::chrono::duration<double> elapsed_ms_write = finish_w - start_w;
+
+    
     
     // std::cout<<"file read : "<<elapsed_ms_read.count()*1000<<" ms\n";
     std::cout<<"smooth : "<<elapsed_ms_smooth.count()*1000<<" ms\n";
@@ -157,5 +163,7 @@ int main(int argc, char **argv)
     // std::cout << "File write : " << elapsed_ms_write.count() * 1000 << " ms\n";
     std::cout<< "Processing time: " << (elapsed_ms_smooth.count() + elapsed_ms_details.count() + elapsed_ms_sharpen.count()) *1000<< " ms\n";
     std::cout<< "Total time: " << (elapsed_ms_smooth.count() + elapsed_ms_details.count() + elapsed_ms_sharpen.count() + elapsed_ms_read.count()+ elapsed_ms_write.count()) *1000<< " ms\n";
+
+    std::cout << "Image written to " << argv[2] << std::endl;
     return 0;
 }

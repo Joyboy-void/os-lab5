@@ -20,8 +20,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "../includes/rowPacket.h"
-#include "../includes/libppm.h"
+#include "../../include/rowPacket.h"
+#include "../../include/libppm.h"   
 
 const bool USE_HASH = true;
 const int PROCESSED_ROW_COUNT = 32;
@@ -168,6 +168,9 @@ int main(int argc, char **argv) {
         std::cout << "usage: ./b.out <input.ppm> <output.ppm> [server_ip] [port]\n";
         return 0;
     }
+
+    std::cout << "\nProcessing S3 and Writing Image..." <<std::endl;
+    std::cout << "----------------------------------------------------------------------------------------------------------" << std::endl;
 
     const char* server_ip = (argc == 5) ? argv[3] : "127.0.0.1";
 

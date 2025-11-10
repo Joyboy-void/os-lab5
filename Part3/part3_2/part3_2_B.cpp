@@ -18,8 +18,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include "../includes/rowPacket.h"
-#include "../includes/libppm.h"
+#include "../../include/rowPacket.h"
+#include "../../include/libppm.h"   
 
 
 const bool USE_HASH = true;
@@ -349,6 +349,9 @@ int main(int argc, char **argv) {
         return 0;
     }
 
+    std::cout << "\nProcessing S2,S3 And Writing Image... " <<std::endl;
+    std::cout << "----------------------------------------------------------------------------------------------------------" << std::endl;
+
     image_t* input_image = read_ppm_file(argv[1]);
     if (!input_image) { 
         std::cerr << "Failed to read input\n"; 
@@ -471,6 +474,7 @@ int main(int argc, char **argv) {
 
     auto finish_p = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed = finish_p - start_p;
+    
     std::cout << "Total Processing time : " << elapsed.count()*1000 << " ms\n";
 
     write_ppm_file(argv[2], output_image);
