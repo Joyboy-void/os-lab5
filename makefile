@@ -147,38 +147,38 @@ $(BIN_PATH)/part3_2_B_out: Part3/part3_2/part3_2_B.cpp $(SUPPORTING_FILES)
 
 # to Check output
 
-$(BIN_PATH)/check_out: check.cpp $(SUPPORTING_FILES)
+$(BIN_PATH)/imgcmp_out: imgcmp.cpp $(SUPPORTING_FILES)
 
 	@echo "---------------------------------------------------------------------------------------------------------"
-	g++ $(INCLUDES) check.cpp $(SUPPORTING_FILES) -o $(BIN_PATH)/check_out
+	g++ $(INCLUDES) imgcmp.cpp $(SUPPORTING_FILES) -o $(BIN_PATH)/imgcmp_out
 	@echo
-	@echo "Compiled check.cpp,Exicuting ...."
+	@echo "Compiled imgcmp.cpp,Exicuting ...."
 
 #part2
-check-part2_1: $(BIN_PATH)/check_out $(OUT_IMG_PATH)/output_part1.ppm $(OUT_IMG_PATH)/output_part2_1.ppm
+check-part2_1: $(BIN_PATH)/imgcmp_out $(OUT_IMG_PATH)/output_part1.ppm $(OUT_IMG_PATH)/output_part2_1.ppm
 	@echo "---------------------------------------------------------------------------------------------------------"
-	$(BIN_PATH)/check_out $(OUT_IMG_PATH)/output_part1.ppm $(OUT_IMG_PATH)/output_part2_1.ppm
+	$(BIN_PATH)/imgcmp_out $(OUT_IMG_PATH)/output_part1.ppm $(OUT_IMG_PATH)/output_part2_1.ppm
 
-check-part2_2: $(BIN_PATH)/check_out $(OUT_IMG_PATH)/output_part1.ppm $(OUT_IMG_PATH)/output_part2_2.ppm
+check-part2_2: $(BIN_PATH)/imgcmp_out $(OUT_IMG_PATH)/output_part1.ppm $(OUT_IMG_PATH)/output_part2_2.ppm
 	@echo "---------------------------------------------------------------------------------------------------------"
-	$(BIN_PATH)/check_out $(OUT_IMG_PATH)/output_part1.ppm $(OUT_IMG_PATH)/output_part2_2.ppm
+	$(BIN_PATH)/imgcmp_out $(OUT_IMG_PATH)/output_part1.ppm $(OUT_IMG_PATH)/output_part2_2.ppm
 
-check-part2_3: $(BIN_PATH)/check_out $(OUT_IMG_PATH)/output_part1.ppm $(OUT_IMG_PATH)/output_part2_3.ppm
+check-part2_3: $(BIN_PATH)/imgcmp_out $(OUT_IMG_PATH)/output_part1.ppm $(OUT_IMG_PATH)/output_part2_3.ppm
 	@echo "---------------------------------------------------------------------------------------------------------"
-	$(BIN_PATH)/check_out $(OUT_IMG_PATH)/output_part1.ppm $(OUT_IMG_PATH)/output_part2_3.ppm
+	$(BIN_PATH)/imgcmp_out $(OUT_IMG_PATH)/output_part1.ppm $(OUT_IMG_PATH)/output_part2_3.ppm
 
 
 #part3
 
 # 3_1
-check-part3_1: $(BIN_PATH)/check_out $(OUT_IMG_PATH)/output_part1.ppm $(OUT_IMG_PATH)/output_part3_1.ppm
+check-part3_1: $(BIN_PATH)/imgcmp_out $(OUT_IMG_PATH)/output_part1.ppm $(OUT_IMG_PATH)/output_part3_1.ppm
 	@echo "---------------------------------------------------------------------------------------------------------"
-	$(BIN_PATH)/check_out $(OUT_IMG_PATH)/output_part1.ppm $(OUT_IMG_PATH)/output_part3_1.ppm
+	$(BIN_PATH)/imgcmp_out $(OUT_IMG_PATH)/output_part1.ppm $(OUT_IMG_PATH)/output_part3_1.ppm
 
 # 3_2
-check-part3_2: $(BIN_PATH)/check_out $(OUT_IMG_PATH)/output_part1.ppm $(OUT_IMG_PATH)/output_part3_2.ppm
+check-part3_2: $(BIN_PATH)/imgcmp_out $(OUT_IMG_PATH)/output_part1.ppm $(OUT_IMG_PATH)/output_part3_2.ppm
 	@echo "---------------------------------------------------------------------------------------------------------"
-	$(BIN_PATH)/check_out $(OUT_IMG_PATH)/output_part1.ppm $(OUT_IMG_PATH)/output_part3_2.ppm
+	$(BIN_PATH)/imgcmp_out $(OUT_IMG_PATH)/output_part1.ppm $(OUT_IMG_PATH)/output_part3_2.ppm
 
 clean:
 	rm $(BIN_PATH)/*
