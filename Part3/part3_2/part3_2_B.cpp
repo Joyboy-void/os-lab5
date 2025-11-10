@@ -449,34 +449,19 @@ int main(int argc, char **argv) {
         _exit(0);
     }
 
-    // fork S3
-    pid_t pid3 = fork();
+    // Running S3 By parent Process without fork, forking will lead to loss of computed data
 
-    if (pid3 < 0) { 
-        perror("fork3"); 
-        exit(1); 
-    }
-    if (pid3 == 0) {
-        S3_sharpen(input_image,output_image);
+    S3_sharpen(input_image,output_image);
 
-        //cleanup
-        munmap(shm_s2_s3, g_shm_size);
-        sem_close(sem_s2s3_empty); sem_close(sem_s2s3_full);
-
-        _exit(0);
-    }
-
-    
+    sem_close(sem_s2s3_empty); sem_close(sem_s2s3_full);
     munmap(shm_s2_s3, g_shm_size);
 
     waitpid(pid2, nullptr, 0);
-    waitpid(pid3, nullptr, 0);
 
     auto finish_p = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed = finish_p - start_p;
     
     std::cout << "Total Processing time : " << elapsed.count()*1000 << " ms\n";
-
     write_ppm_file(argv[2], output_image);
     std::cout << "Image written to " << argv[2] << std::endl;
 
