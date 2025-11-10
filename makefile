@@ -43,7 +43,7 @@ $(BIN_PATH)/part1_out: Part1/part1.cpp $(SUPPORTING_FILES)
 	@echo "---------------------------------------------------------------------------------------------------------"
 	g++ $(INCLUDES) Part1/part1.cpp $(SUPPORTING_FILES) -o $(BIN_PATH)/part1_out
 	@echo
-	@echo "Compiled part1,Exicuting ...."
+	@echo "Compiled part1,Executing ...."
 
 # part2
 
@@ -58,7 +58,7 @@ $(BIN_PATH)/part2_1_out: Part2/part2_1/part2_1.cpp $(SUPPORTING_FILES)
 	@echo "---------------------------------------------------------------------------------------------------------"
 	g++ $(INCLUDES) Part2/part2_1/part2_1.cpp $(SUPPORTING_FILES) -o $(BIN_PATH)/part2_1_out
 	@echo
-	@echo "Compiled part2_1,Exicuting ...."
+	@echo "Compiled part2_1,Executing ...."
 
 
 part2_2 $(OUT_IMG_PATH)/output_part2_2.ppm: $(BIN_PATH)/part2_2_out $(INPUT)
@@ -72,7 +72,7 @@ $(BIN_PATH)/part2_2_out: Part2/part2_2/part2_2.cpp $(SUPPORTING_FILES)
 	@echo "---------------------------------------------------------------------------------------------------------"
 	g++ $(INCLUDES) Part2/part2_2/part2_2.cpp $(SUPPORTING_FILES) -o $(BIN_PATH)/part2_2_out
 	@echo
-	@echo "Compiled part2_2,Exicuting ...."
+	@echo "Compiled part2_2,Executing ...."
 
 part2_3 $(OUT_IMG_PATH)/output_part2_3.ppm: $(BIN_PATH)/part2_3_out $(INPUT)
 	@ mkdir -p $(OUT_IMG_PATH)
@@ -85,7 +85,7 @@ $(BIN_PATH)/part2_3_out: Part2/part2_3/part2_3.cpp $(SUPPORTING_FILES)
 	@echo "---------------------------------------------------------------------------------------------------------"
 	g++ $(INCLUDES) Part2/part2_3/part2_3.cpp $(SUPPORTING_FILES) -o $(BIN_PATH)/part2_3_out
 	@echo
-	@echo "Compiled part2_3,Exicuting ...."
+	@echo "Compiled part2_3,Executing ...."
 	
 # part 3
 
@@ -101,7 +101,7 @@ $(BIN_PATH)/part3_1_A_out: Part3/part3_1/part3_1_A.cpp $(SUPPORTING_FILES)
 	@echo "---------------------------------------------------------------------------------------------------------"
 	g++ $(INCLUDES) Part3/part3_1/part3_1_A.cpp $(SUPPORTING_FILES) -o $(BIN_PATH)/part3_1_A_out 
 	@echo
-	@echo "Compiled part3_1_A,Exicuting ...."
+	@echo "Compiled part3_1_A,Executing ...."
 
 part3_1_B: $(BIN_PATH)/part3_1_B_out $(INPUT)
 	@ mkdir -p $(OUT_IMG_PATH)
@@ -114,7 +114,7 @@ $(BIN_PATH)/part3_1_B_out: Part3/part3_1/part3_1_B.cpp $(SUPPORTING_FILES)
 	@echo "---------------------------------------------------------------------------------------------------------"
 	g++ $(INCLUDES) Part3/part3_1/part3_1_B.cpp $(SUPPORTING_FILES) -o $(BIN_PATH)/part3_1_B_out
 	@echo
-	@echo "Compiled part3_1_B,Exicuting ...."
+	@echo "Compiled part3_1_B,Executing ...."
 
 
 # 3_2
@@ -129,7 +129,7 @@ $(BIN_PATH)/part3_2_A_out: Part3/part3_2/part3_2_A.cpp $(SUPPORTING_FILES)
 	@echo "---------------------------------------------------------------------------------------------------------"
 	g++ $(INCLUDES) Part3/part3_2/part3_2_A.cpp $(SUPPORTING_FILES) -o $(BIN_PATH)/part3_2_A_out
 	@echo
-	@echo "Compiled part3_2_A,Exicuting ...."
+	@echo "Compiled part3_2_A,Executing ...."
 
 part3_2_B: $(BIN_PATH)/part3_2_B_out $(INPUT)
 	@ mkdir -p $(OUT_IMG_PATH)
@@ -142,7 +142,7 @@ $(BIN_PATH)/part3_2_B_out: Part3/part3_2/part3_2_B.cpp $(SUPPORTING_FILES)
 	@echo "---------------------------------------------------------------------------------------------------------"
 	g++ $(INCLUDES) Part3/part3_2/part3_2_B.cpp $(SUPPORTING_FILES) -o $(BIN_PATH)/part3_2_B_out
 	@echo
-	@echo "Compiled part3_2_B,Exicuting ...."
+	@echo "Compiled part3_2_B,Executing ...."
 
 
 # to Check output
@@ -152,7 +152,7 @@ $(BIN_PATH)/imgcmp_out: imgcmp.cpp $(SUPPORTING_FILES)
 	@echo "---------------------------------------------------------------------------------------------------------"
 	g++ $(INCLUDES) imgcmp.cpp $(SUPPORTING_FILES) -o $(BIN_PATH)/imgcmp_out
 	@echo
-	@echo "Compiled imgcmp.cpp,Exicuting ...."
+	@echo "Compiled imgcmp.cpp,Executing ...."
 
 #part2
 check-part2_1: $(BIN_PATH)/imgcmp_out $(OUT_IMG_PATH)/output_part1.ppm $(OUT_IMG_PATH)/output_part2_1.ppm

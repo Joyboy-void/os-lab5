@@ -21,7 +21,7 @@
 
 
 const bool USE_HASH = true;
-const int MAX_ITERATIONS = 1;
+const int MAX_ITERATIONS = 10;
 const int PROCESSED_ROW_COUNT = 32;
 const int SCALING_FACTOR = 2;
 
@@ -461,7 +461,10 @@ int main(int argc, char **argv) {
     std::cout << "----------------------------------------------------------------------------------------------------------" << std::endl;
 
     image_t* input_image = read_ppm_file(argv[1]);
-    if (!input_image) { std::cerr << "Failed to read input\n"; return 1; }
+    if (!input_image) { 
+        std::cerr << "Failed to read input\n"; 
+        return 1; 
+    }
 
     int height = input_image->height, width = input_image->width;
 
@@ -492,7 +495,11 @@ int main(int argc, char **argv) {
     shm_s1_s2 = create_and_map_shm(SHM_S1_S2_NAME, g_shm_size);
     shm_s2_s3 = create_and_map_shm(SHM_S2_S3_NAME, g_shm_size);
     shm_s3_p  = create_and_map_shm(SHM_S3_P_NAME,  g_shm_size);
-    if (!shm_s1_s2 || !shm_s2_s3 || !shm_s3_p) { std::cerr << "Failed to create shared memory\n"; return 1; }
+
+    if (!shm_s1_s2 || !shm_s2_s3 || !shm_s3_p) { 
+        std::cerr << "Failed to create shared memory\n"; 
+        return 1; 
+    }
 
     // create semaphores (initially empty=1, full=0)
     sem_unlink(SEM_S1S2_EMPTY); sem_unlink(SEM_S1S2_FULL);
@@ -513,118 +520,120 @@ int main(int argc, char **argv) {
 
     auto start_p = std::chrono::steady_clock::now();
 
-    
-    pid_t pid1 = fork();
+    for(int i = 0;i < MAX_ITERATIONS;i++){
+        pid_t pid1 = fork();
 
-    if (pid1 < 0) { 
-        perror("fork1"); 
-        exit(1); 
-    }
-    if (pid1 == 0) {
-        S1_smoothen(input_image);
-        
-        // cleanup
-        munmap(shm_s1_s2, g_shm_size);
-        munmap(shm_s2_s3, g_shm_size);
-        munmap(shm_s3_p,  g_shm_size);
-        sem_close(sem_s1s2_empty); sem_close(sem_s1s2_full);
-        sem_close(sem_s2s3_empty); sem_close(sem_s2s3_full);
-        sem_close(sem_s3p_empty);  sem_close(sem_s3p_full);
-        _exit(0);
-    }
+        if (pid1 < 0) { 
+            perror("fork1"); 
+            exit(1); 
+        }
+        if (pid1 == 0) {
+            S1_smoothen(input_image);
+            
+            // cleanup
+            munmap(shm_s1_s2, g_shm_size);
+            munmap(shm_s2_s3, g_shm_size);
+            munmap(shm_s3_p,  g_shm_size);
+            sem_close(sem_s1s2_empty); sem_close(sem_s1s2_full);
+            sem_close(sem_s2s3_empty); sem_close(sem_s2s3_full);
+            sem_close(sem_s3p_empty);  sem_close(sem_s3p_full);
+            _exit(0);
+        }
 
-    // fork S2
-    pid_t pid2 = fork();
+        // fork S2
+        pid_t pid2 = fork();
 
-    if (pid2 < 0) { 
-        perror("fork2"); 
-        exit(1); 
-    }
-    if (pid2 == 0) {
-        S2_find_details(input_image);
+        if (pid2 < 0) { 
+            perror("fork2"); 
+            exit(1); 
+        }
+        if (pid2 == 0) {
+            S2_find_details(input_image);
 
-        //cleanup
-        munmap(shm_s1_s2, g_shm_size);
-        munmap(shm_s2_s3, g_shm_size);
-        munmap(shm_s3_p,  g_shm_size);
-        sem_close(sem_s1s2_empty); sem_close(sem_s1s2_full);
-        sem_close(sem_s2s3_empty); sem_close(sem_s2s3_full);
-        sem_close(sem_s3p_empty);  sem_close(sem_s3p_full);
-        _exit(0);
-    }
+            //cleanup
+            munmap(shm_s1_s2, g_shm_size);
+            munmap(shm_s2_s3, g_shm_size);
+            munmap(shm_s3_p,  g_shm_size);
+            sem_close(sem_s1s2_empty); sem_close(sem_s1s2_full);
+            sem_close(sem_s2s3_empty); sem_close(sem_s2s3_full);
+            sem_close(sem_s3p_empty);  sem_close(sem_s3p_full);
+            _exit(0);
+        }
 
-    // fork S3
-    pid_t pid3 = fork();
+        // fork S3
+        pid_t pid3 = fork();
 
-    if (pid3 < 0) { 
-        perror("fork3"); 
-        exit(1); 
-    }
-    if (pid3 == 0) {
-        S3_sharpen(input_image);
+        if (pid3 < 0) { 
+            perror("fork3"); 
+            exit(1); 
+        }
+        if (pid3 == 0) {
+            S3_sharpen(input_image);
 
-        //cleanup
-        munmap(shm_s1_s2, g_shm_size);
-        munmap(shm_s2_s3, g_shm_size);
-        munmap(shm_s3_p,  g_shm_size);
-        sem_close(sem_s1s2_empty); sem_close(sem_s1s2_full);
-        sem_close(sem_s2s3_empty); sem_close(sem_s2s3_full);
-        sem_close(sem_s3p_empty);  sem_close(sem_s3p_full);
-        _exit(0);
-    }
+            //cleanup
+            munmap(shm_s1_s2, g_shm_size);
+            munmap(shm_s2_s3, g_shm_size);
+            munmap(shm_s3_p,  g_shm_size);
+            sem_close(sem_s1s2_empty); sem_close(sem_s1s2_full);
+            sem_close(sem_s2s3_empty); sem_close(sem_s2s3_full);
+            sem_close(sem_s3p_empty);  sem_close(sem_s3p_full);
+            _exit(0);
+        }
 
-    // parent: read from shm_s3_p and write to output_image
-    std::vector<char> blockbuf(g_shm_size);
+        // parent: read from shm_s3_p and write to output_image
+        std::vector<char> blockbuf(g_shm_size);
 
-    while (true) {
-        read_shm_block(shm_s3_p, sem_s3p_empty, sem_s3p_full, blockbuf);
+        while (true) {
+            read_shm_block(shm_s3_p, sem_s3p_empty, sem_s3p_full, blockbuf);
 
-        int32_t start_row, num_rows, cols;
-        uint64_t hash;
-        uint8_t is_last;
-        
-        deserialize_header(blockbuf.data(), start_row, num_rows, cols, hash, is_last);
+            int32_t start_row, num_rows, cols;
+            uint64_t hash;
+            uint8_t is_last;
+            
+            deserialize_header(blockbuf.data(), start_row, num_rows, cols, hash, is_last);
 
-        if (is_last) 
-            break;
-
-        rowPacket rpkt(start_row, num_rows, cols);
-        size_t actual = static_cast<size_t>(num_rows) * cols * 3;
-
-        if (actual > 0) 
-            memcpy(rpkt.pixels.data(), blockbuf.data() + HDR_SIZE, actual);
-
-        if (USE_HASH) {
-            if (calculate_hash_for_packet(rpkt) != (std::size_t)hash) {
-                std::cerr << "Parent: data corrupted for row " << rpkt.start_row << "\n";
+            if (is_last) 
                 break;
+
+            rowPacket rpkt(start_row, num_rows, cols);
+            size_t actual = static_cast<size_t>(num_rows) * cols * 3;
+
+            if (actual > 0) 
+                memcpy(rpkt.pixels.data(), blockbuf.data() + HDR_SIZE, actual);
+
+            if (USE_HASH) {
+                if (calculate_hash_for_packet(rpkt) != (std::size_t)hash) {
+                    std::cerr << "Parent: data corrupted for row " << rpkt.start_row << "\n";
+                    break;
+                }
+            }
+
+            for (int r_off = 0; r_off < rpkt.num_rows; ++r_off) {
+                int r = rpkt.start_row + r_off;
+                for (int cidx = 0; cidx < rpkt.cols_per_row; ++cidx) {
+                    int j = 1 + cidx;
+
+                    uint8_t* src = rpkt.pixel_ptr(r_off, cidx);
+                    
+                    output_image->image_pixels[r][j][0] = src[0];
+                    output_image->image_pixels[r][j][1] = src[1];
+                    output_image->image_pixels[r][j][2] = src[2];
+                }
             }
         }
 
-        for (int r_off = 0; r_off < rpkt.num_rows; ++r_off) {
-            int r = rpkt.start_row + r_off;
-            for (int cidx = 0; cidx < rpkt.cols_per_row; ++cidx) {
-                int j = 1 + cidx;
-
-                uint8_t* src = rpkt.pixel_ptr(r_off, cidx);
-                
-                output_image->image_pixels[r][j][0] = src[0];
-                output_image->image_pixels[r][j][1] = src[1];
-                output_image->image_pixels[r][j][2] = src[2];
-            }
-        }
+        waitpid(pid1, nullptr, 0);
+        waitpid(pid2, nullptr, 0);
+        waitpid(pid3, nullptr, 0);
     }
+
+    auto finish_p = std::chrono::steady_clock::now();
 
 
     munmap(shm_s1_s2, g_shm_size);
     munmap(shm_s2_s3, g_shm_size);
     munmap(shm_s3_p,  g_shm_size);
 
-    waitpid(pid1, nullptr, 0);
-    waitpid(pid2, nullptr, 0);
-    waitpid(pid3, nullptr, 0);
-
-    auto finish_p = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed = finish_p - start_p;
 
     std::cout << "Total Processing time per iteration " << elapsed.count()*1000/MAX_ITERATIONS << " ms\n";

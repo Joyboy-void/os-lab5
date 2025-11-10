@@ -433,6 +433,7 @@ int main(int argc, char **argv) {
         output_image->image_pixels[i] = new uint8_t*[width];
         for (int j = 0; j < width; ++j) {
             output_image->image_pixels[i][j] = new uint8_t[3];
+            
             output_image->image_pixels[i][j][0] = input_image->image_pixels[i][j][0];
             output_image->image_pixels[i][j][1] = input_image->image_pixels[i][j][1];
             output_image->image_pixels[i][j][2] = input_image->image_pixels[i][j][2];
@@ -440,103 +441,113 @@ int main(int argc, char **argv) {
     }
 
     // create pipes
-    if (pipe(fd_S1_S2) < 0) { perror("pipe1"); exit(1); }
-    if (pipe(fd_S2_S3) < 0) { perror("pipe2"); exit(1); }
-    if (pipe(fd_S3_P)  < 0) { perror("pipe3"); exit(1); }
+    if (pipe(fd_S1_S2) < 0) { 
+        perror("pipe1"); 
+        exit(1); 
+    }
+    if (pipe(fd_S2_S3) < 0) { 
+        perror("pipe2"); 
+        exit(1); 
+    }
+    if (pipe(fd_S3_P)  < 0) { 
+        perror("pipe3"); 
+        exit(1); 
+    }
 
     auto start_p = std::chrono::steady_clock::now();
 
-    // fork S1
-    pid_t pid1 = fork();
-    if (pid1 < 0) { perror("fork1"); exit(1); }
-    if (pid1 == 0) {
-        close(fd_S1_S2[0]);
-        close(fd_S2_S3[0]); close(fd_S2_S3[1]);
-        close(fd_S3_P[0]); close(fd_S3_P[1]);
-        S1_smoothen(input_image);
-        _exit(0);
-    }
-
-    // fork S2
-    pid_t pid2 = fork();
-    if (pid2 < 0) { perror("fork2"); exit(1); }
-    if (pid2 == 0) {
-        close(fd_S1_S2[1]);
-        close(fd_S2_S3[0]);
-        close(fd_S3_P[0]); close(fd_S3_P[1]);
-        S2_find_details(input_image);
-        _exit(0);
-    }
-
-    // fork S3
-    pid_t pid3 = fork();
-    if (pid3 < 0) { perror("fork3"); exit(1); }
-    if (pid3 == 0) {
-        close(fd_S1_S2[0]); close(fd_S1_S2[1]);
-        close(fd_S2_S3[1]);
-        close(fd_S3_P[0]);
-        S3_sharpen(input_image);
-        _exit(0);
-    }
-
-    // parent: close unused
-    close(fd_S1_S2[0]); close(fd_S1_S2[1]);
-    close(fd_S2_S3[0]); close(fd_S2_S3[1]);
-    close(fd_S3_P[1]);
-
-    
-    const int cols_per_row = std::max(0, width - 2);
-    const size_t fixed_payload = static_cast<size_t>(PROCESSED_ROW_COUNT) * cols_per_row * 3;
-    
-    std::vector<char> hdrbuf(HDR_SIZE);
-    std::vector<uint8_t> payloadbuf(fixed_payload);
-
-    while (true) {
-        if (read_all(fd_S3_P[0], hdrbuf.data(), HDR_SIZE) != (ssize_t)HDR_SIZE) 
-            break;
-        int32_t start_row, num_rows, cols;
-        uint64_t hash;
-        uint8_t is_last;
-        deserialize_header(hdrbuf.data(), start_row, num_rows, cols, hash, is_last);
-
-        if (read_all(fd_S3_P[0], payloadbuf.data(), fixed_payload) != (ssize_t)fixed_payload) {
-            perror("parent payload read");
-            break;
+    for(int i = 0;i < MAX_ITERATIONS;i++){
+        // fork S1
+        pid_t pid1 = fork();
+        if (pid1 < 0) { perror("fork1"); exit(1); }
+        if (pid1 == 0) {
+            close(fd_S1_S2[0]);
+            close(fd_S2_S3[0]); close(fd_S2_S3[1]);
+            close(fd_S3_P[0]); close(fd_S3_P[1]);
+            S1_smoothen(input_image);
+            _exit(0);
         }
 
-        if (is_last) break;
+        // fork S2
+        pid_t pid2 = fork();
+        if (pid2 < 0) { perror("fork2"); exit(1); }
+        if (pid2 == 0) {
+            close(fd_S1_S2[1]);
+            close(fd_S2_S3[0]);
+            close(fd_S3_P[0]); close(fd_S3_P[1]);
+            S2_find_details(input_image);
+            _exit(0);
+        }
 
-        rowPacket rpkt(start_row, num_rows, cols);
-        size_t actual = static_cast<size_t>(num_rows) * cols * 3;
-        if (actual > 0) memcpy(rpkt.pixels.data(), payloadbuf.data(), actual);
+        // fork S3
+        pid_t pid3 = fork();
+        if (pid3 < 0) { perror("fork3"); exit(1); }
+        if (pid3 == 0) {
+            close(fd_S1_S2[0]); close(fd_S1_S2[1]);
+            close(fd_S2_S3[1]);
+            close(fd_S3_P[0]);
+            S3_sharpen(input_image);
+            _exit(0);
+        }
 
-        if (USE_HASH) {
-            if (calculate_hash_for_packet(rpkt) != (std::size_t)hash) {
-                std::cerr << "Parent: data corrupted for row " << rpkt.start_row << "\n";
+        
+        const int cols_per_row = std::max(0, width - 2);
+        const size_t fixed_payload = static_cast<size_t>(PROCESSED_ROW_COUNT) * cols_per_row * 3;
+        
+        std::vector<char> hdrbuf(HDR_SIZE);
+        std::vector<uint8_t> payloadbuf(fixed_payload);
+
+        while (true) {
+            if (read_all(fd_S3_P[0], hdrbuf.data(), HDR_SIZE) != (ssize_t)HDR_SIZE) 
+                break;
+            int32_t start_row, num_rows, cols;
+            uint64_t hash;
+            uint8_t is_last;
+            deserialize_header(hdrbuf.data(), start_row, num_rows, cols, hash, is_last);
+
+            if (read_all(fd_S3_P[0], payloadbuf.data(), fixed_payload) != (ssize_t)fixed_payload) {
+                perror("parent payload read");
                 break;
             }
-        }
 
-        // copy into output_image
-        for (int r_off = 0; r_off < rpkt.num_rows; ++r_off) {
-            int r = rpkt.start_row + r_off;
-            for (int cidx = 0; cidx < rpkt.cols_per_row; ++cidx) {
-                int j = 1 + cidx;
-                uint8_t* src = rpkt.pixel_ptr(r_off, cidx);
-                output_image->image_pixels[r][j][0] = src[0];
-                output_image->image_pixels[r][j][1] = src[1];
-                output_image->image_pixels[r][j][2] = src[2];
+            if (is_last) break;
+
+            rowPacket rpkt(start_row, num_rows, cols);
+            size_t actual = static_cast<size_t>(num_rows) * cols * 3;
+            if (actual > 0) memcpy(rpkt.pixels.data(), payloadbuf.data(), actual);
+
+            if (USE_HASH) {
+                if (calculate_hash_for_packet(rpkt) != (std::size_t)hash) {
+                    std::cerr << "Parent: data corrupted for row " << rpkt.start_row << "\n";
+                    break;
+                }
+            }
+
+            // copy into output_image
+            for (int r_off = 0; r_off < rpkt.num_rows; ++r_off) {
+                int r = rpkt.start_row + r_off;
+                for (int cidx = 0; cidx < rpkt.cols_per_row; ++cidx) {
+                    int j = 1 + cidx;
+                    uint8_t* src = rpkt.pixel_ptr(r_off, cidx);
+                    output_image->image_pixels[r][j][0] = src[0];
+                    output_image->image_pixels[r][j][1] = src[1];
+                    output_image->image_pixels[r][j][2] = src[2];
+                }
             }
         }
+
+
+        waitpid(pid1, nullptr, 0);
+        waitpid(pid2, nullptr, 0);
+        waitpid(pid3, nullptr, 0);
     }
 
-    close(fd_S3_P[0]);
-
-    waitpid(pid1, nullptr, 0);
-    waitpid(pid2, nullptr, 0);
-    waitpid(pid3, nullptr, 0);
-
     auto finish_p = std::chrono::steady_clock::now();
+
+    close(fd_S1_S2[0]); close(fd_S1_S2[1]);
+    close(fd_S2_S3[0]); close(fd_S2_S3[1]);
+    close(fd_S3_P[1]); close(fd_S3_P[0]);
+
     std::chrono::duration<double> elapsed = finish_p - start_p;
 
     std::cout << "Total Processing time per iteration " << elapsed.count()*1000/MAX_ITERATIONS << " ms\n";
